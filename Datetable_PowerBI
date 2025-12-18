@@ -1,0 +1,26 @@
+--Script for Datetable on PowerBI
+
+let
+    StartDate = #date(2023,1,1),
+    EndDate = #date(2025,12,31),
+    DayCount = Duration.Days(EndDate - StartDate) + 1,
+    Source = List.Dates(StartDate, DayCount, #duration(1,0,0,0)),
+    TableFromList = Table.FromList(Source, Splitter.SplitByNothing(), {"Date"}),
+    ChangedType = Table.TransformColumnTypes(TableFromList, {{"Date", type date}}),
+    InsertYear = Table.AddColumn(ChangedType, "Year", each Date.Year([Date]), type number),
+    InsertQuarter = Table.AddColumn(InsertYear, "QuarterNumber", each Date.QuarterOfYear([Date]), type number),
+    InsertMonth = Table.AddColumn(InsertQuarter, "MonthNumber", each Date.Month([Date]), type number),
+    InsertDay = Table.AddColumn(InsertMonth, "DayOfMonth", each Date.Day([Date]), type number),
+    InsertDayInt = Table.AddColumn(InsertDay, "DateInt", each [Year]*10000 + [MonthNumber]*100 + [DayOfMonth], type number),
+    InsertMonthName = Table.AddColumn(InsertDayInt, "Month", each Date.ToText([Date],"MMMM"), type text),
+    InsertMonthYr = Table.AddColumn(InsertMonthName, "MonthOfYear", each Text.Start([Month],3) & " " & Number.ToText([Year]), type text),
+    InsertQuarterYr = Table.AddColumn(InsertMonthYr, "QuarterOfYear", each "Q" & Number.ToText([QuarterNumber]) & " " & Number.ToText([Year]), type text),
+    InsertDayWeek = Table.AddColumn(InsertQuarterYr, "DayInWeek", each Date.DayOfWeek([Date]), type number),
+    InsertDayName = Table.AddColumn(InsertDayWeek, "DayOfWeekName", each Date.ToText([Date],"dddd"), type text),
+    InsertWeekStarting = Table.AddColumn(InsertDayName, "WeekStarting", each Date.StartOfWeek([Date]), type date),
+    InsertWeekEnding = Table.AddColumn(InsertWeekStarting, "WeekEnding", each Date.EndOfWeek([Date]), type date),
+    InsertMonthYrSort = Table.AddColumn(InsertWeekEnding, "MonthYrSort", each Number.FromText(Date.ToText([Date],"yyyyMM")), type number),
+    InsertQuarterSort = Table.AddColumn(InsertMonthYrSort, "QuarterYrSort", each Number.FromText(Text.From([Year]) & Text.From([QuarterNumber])), type number),
+    InsertWeekOfYr = Table.AddColumn(InsertQuarterSort, "Week", each "Week " & Number.ToText(Date.WeekOfYear([Date])), type text)
+in
+    InsertWeekOfYr
